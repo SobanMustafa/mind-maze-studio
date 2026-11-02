@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mind Maze Studio — 3D Optical Illusion Video Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #07090e;
+      color: #f8fafc;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    /* Phone preview container aspect ratio */
+    .canvas-preview-wrapper {
+      aspect-ratio: 9 / 16;
+      max-height: 76vh;
+      width: auto;
+    }
+    @media (max-width: 768px) {
+      .canvas-preview-wrapper {
+        max-height: 62vh;
+      }
+    }
+    input[type="range"] {
+      accent-color: #3b82f6;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-blue-600 selection:text-white">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-600/30">
+          <svg class="w-6 h-6 text-white animate-spin" style="animation-duration: 8s;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-extrabold tracking-tight text-white">Mind Maze Studio</h1>
+            <span class="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">Exact @eyedrills Replica</span>
+          </div>
+          <p class="text-xs text-slate-400">3D Kinetic Depth Optical Illusion Video Maker & Direct MP4/WebM Exporter</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="flex items-center gap-2.5">
+        <button id="audioToggleBtn" class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 transition">
+          <span id="audioIcon">🔇</span>
+          <span id="audioStatusText">Beat Sound: OFF</span>
+        </button>
+
+        <button id="topExportBtn" class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-600/30 transition transform active:scale-95">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          <span>Download Video Now</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    <!-- Left Column: Live 9:16 TikTok/Reels Video Canvas Preview -->
+    <div class="lg:col-span-5 flex flex-col items-center">
+      <div class="relative p-2.5 rounded-[2rem] bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/80 shadow-2xl shadow-black">
+        <!-- Recording Badge Overlay -->
+        <div id="recordingBadge" class="hidden absolute top-6 left-6 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-600/90 backdrop-blur-md text-white text-xs font-bold shadow-lg">
+          <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
+          <span id="recordingBadgeText">REC • 10s</span>
+        </div>
+
+        <!-- Resolution Badge -->
+        <div class="absolute top-6 right-6 z-20 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700/70 text-[11px] font-medium text-slate-300 pointer-events-none">
+          9:16 Vertical • 60 FPS
+        </div>
+
+        <!-- The Actual 1080x1920 Canvas -->
+        <div class="canvas-preview-wrapper rounded-[1.4rem] overflow-hidden bg-black relative shadow-inner">
+          <canvas id="illusionCanvas" width="1080" height="1920" class="w-full h-full block cursor-pointer" title="Click to reverse spin direction"></canvas>
+        </div>
+      </div>
+
+      <p class="mt-3 text-xs text-slate-400 text-center max-w-xs">
+        💡 <span class="text-slate-200 font-medium">Tip:</span> White dot par 5 second focus karein aur blink karein — dimaag khud iski direction reverse kar dega!
+      </p>
+    </div>
+
+    <!-- Right Column: Video Export & Customization Controls -->
+    <div class="lg:col-span-7 flex flex-col gap-5">
+
+      <!-- Card 1: One-Click Video Generator & Downloader -->
+      <div class="rounded-2xl bg-slate-900/90 border border-blue-500/30 p-5 shadow-xl shadow-blue-950/20">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+          <div>
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-400">
+              <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+              Step 1: Ready to Export
+            </span>
+            <h2 class="text-lg font-bold text-white mt-0.5">Generate & Save Video File</h2>
+            <p class="text-xs text-slate-400">Click below to record the full-HD 1080×1920 animation directly to your device.</p>
+          </div>
+
+          <!-- Duration Selector -->
+          <div class="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 self-start sm:self-center">
+            <button data-duration="5" class="duration-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">5 sec</button>
+            <button data-duration="10" class="duration-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shadow">10 sec</button>
+            <button data-duration="15" class="duration-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition">15 sec (Full)</button>
+          </div>
+        </div>
+
+        <!-- Export Controls & Progress Bar -->
+        <div class="mt-4 flex flex-col gap-3">
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <button id="mainExportBtn" class="flex-1 py-3.5 px-5 rounded-xl font-extrabold text-sm sm:text-base bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2.5 transition transform active:scale-[0.99]">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              <span id="mainExportBtnText">Record & Download Video (10s)</span>
+            </button>
+
+            <button id="instantSnapshotBtn" class="py-3.5 px-4 rounded-xl font-semibold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-2 transition" title="Save high-res thumbnail">
+              <span>📸</span>
+              <span>Thumbnail PNG</span>
+            </button>
+          </div>
+
+          <!-- Progress Bar Container -->
+          <div id="exportProgressBox" class="hidden rounded-xl bg-slate-950 border border-slate-800 p-3.5">
+            <div class="flex items-center justify-between text-xs font-semibold mb-2">
+              <span id="exportProgressLabel" class="text-blue-400">Encoding 1080p60 video frames...</span>
+              <span id="exportProgressPercent" class="text-white font-mono">0%</span>
+            </div>
+            <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+              <div id="exportProgressBar" class="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full transition-all duration-150" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- Ready Download Link Banner (Appears after recording finishes) -->
+          <div id="downloadReadyBanner" class="hidden rounded-xl bg-emerald-950/50 border border-emerald-500/40 p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl">✅</span>
+              <div>
+                <p class="text-xs font-bold text-emerald-300">Video Tayyar Hai! Automatic download start ho chuka hai.</p>
+                <p id="downloadFormatInfo" class="text-[11px] text-emerald-400/80">Agar download na hua ho toh samne button par click karein.</p>
+              </div>
+            </div>
+            <a id="manualDownloadLink" href="#" download="mind_maze_illusion.mp4" class="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs whitespace-nowrap shadow transition">
+              ⬇️ Save Video File Again
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Viral Text & "Follow Mind Maze" Customizer -->
+      <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div>
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">On-Screen Text & "Follow Mind Maze" Caption</h3>
+            <p class="text-xs text-slate-400">Match the original sample timing or customize your engaging hook</p>
+          </div>
+          <!-- Viral Preset Buttons -->
+          <div class="flex flex-wrap gap-1.5">
+            <button id="presetEnglish" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/30 transition">
+              🎯 Original + Mind Maze
+            </button>
+            <button id="presetUrdu" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 transition">
+              🇵🇰/🇮🇳 Roman Urdu Hook
+            </button>
+            <button id="presetChallenge" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition">
+              🔥 1% Brain Challenge
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Top Hook Text -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Top Hook Text</label>
+            <input id="topTextInput" type="text" value="Reverse it with your mind" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-blue-500 transition" />
+          </div>
+
+          <!-- Top Text Fade Mode (Like Sample Video) -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Top Text Timing (Sample Behavior)</label>
+            <select id="topTextModeSelect" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+              <option value="always" selected>Keep Always Visible</option>
+              <option value="fade4s">Show 0.8s–4.5s then Fade Out (Exact Sample)</option>
+            </select>
+          </div>
+
+          <!-- Bottom Engaging Line -->
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Bottom Engaging Instruction</label>
+            <input id="subTextInput" type="text" value="Focus on the white dot to flip the spin 👁️" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-blue-500 transition" />
+          </div>
+
+          <!-- Main CTA Text -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Main Channel Call-To-Action</label>
+            <input id="ctaTextInput" type="text" value="Follow Mind Maze 🧠✨" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white font-semibold focus:outline-none focus:border-blue-500 transition" />
+          </div>
+
+          <!-- Bottom Badge Style -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Bottom Caption Style</label>
+            <select id="badgeStyleSelect" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+              <option value="clean" selected>Clean Minimal Text (Matches Sample Aesthetic)</option>
+              <option value="pill">Glowing Pill Badge + Text</option>
+              <option value="neon">Neon Cyber Box</option>
+              <option value="none">Hide Bottom Text (Pure Sample Look)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: 3D Cylinder Illusion Controls -->
+      <div class="rounded-2xl bg-slate-900/80 border border-slate-800 p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">3D Kinetic Depth Physics & Speed</h3>
+            <p class="text-xs text-slate-400">Calibrated to the exact slow hypnotic speed (1.55 rad/s) of @eyedrills</p>
+          </div>
+          <button id="flipDirectionBtn" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 transition flex items-center gap-1.5">
+            <span>🔄</span>
+            <span>Reverse Spin</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- Rotation Speed (rad/s) -->
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-slate-400 font-medium">Rotation Speed</span>
+              <span id="speedValueLabel" class="text-blue-400 font-mono">1.55 rad/s</span>
+            </div>
+            <input id="speedSlider" type="range" min="0.50" max="3.50" step="0.05" value="1.55" class="w-full" />
+          </div>
+
+          <!-- Dot Density -->
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
+            <div class="flex justify-between text-xs mb-1.5">
+              <span class="text-slate-400 font-medium">Dot Count</span>
+              <span id="dotsValueLabel" class="text-blue-400 font-mono">1750</span>
+            </div>
+            <input id="dotsSlider" type="range" min="1000" max="2800" step="50" value="1750" class="w-full" />
+          </div>
+
+          <!-- Color Palette -->
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
+            <label class="block text-xs text-slate-400 font-medium mb-1">Illusion Color</label>
+            <select id="colorThemeSelect" class="w-full bg-slate-900 text-xs text-white rounded-lg px-2.5 py-1.5 border border-slate-700 focus:outline-none">
+              <option value="royal" selected>Cobalt Blue (Exact @eyedrills)</option>
+              <option value="cyan">Electric Cyan</option>
+              <option value="purple">Mind Maze Violet</option>
+              <option value="emerald">Matrix Emerald</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // =========================================================================
+    // 1. EXACT @EYEDRILLS 3D KINETIC DEPTH EFFECT ILLUSION ENGINE
+    // =========================================================================
+    const canvas = document.getElementById('illusionCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Exact Geometry Constants (Thimble / Bullet / Half-Capsule Cup Shape)
+    // Closed rounded hemisphere on TOP-LEFT, open circular mouth on BOTTOM-RIGHT
+    let numDots = 1750;
+    const R = 235;              // Cylinder radius on 1080x1920 canvas
+    const R_DOME = 210;         // Hemisphere axial radius
+    const L = 240;              // Cylinder body length
+    const PITCH_ANGLE = 22 * (Math.PI / 180); // Tilts open right circular mouth toward viewer
+    const TILT_ANGLE = 27 * (Math.PI / 180);  // Tilts axis so dome is top-left (10 o'clock) & mouth is bottom-right (4 o'clock)
+
+    // Slow, calm, frame-rate independent angular velocity matching sample video
+    let angularSpeedRadPerSec = 1.55; // ~0.25 revolutions/sec
+    let spinDirection = 1;
+    let rotationAngle = 0;
+    let elapsedCycleTime = 0;
+
+    // Customizable Overlay Texts
+    let topHookText = "Reverse it with your mind";
+    let topTextMode = "always"; // 'always' or 'fade4s'
+    let subCaptionText = "Focus on the white dot to flip the spin 👁️";
+    let ctaMainText = "Follow Mind Maze 🧠✨";
+    let badgeStyle = "clean";
+
+    // Color themes calibrated to the reference video
+    const COLOR_THEMES = {
+      royal: {
+        frontPrimary: '#3168f4',
+        frontSecondary: '#2554d8',
+        frontGlow: '#3b82f6',
+        backInnerRim: 'rgba(128, 144, 180, 0.48)',
+        backBody: 'rgba(65, 105, 205, 0.52)'
+      },
+      cyan: {
+        frontPrimary: '#06b6d4',
+        frontSecondary: '#0891b2',
+        frontGlow: '#22d3ee',
+        backInnerRim: 'rgba(130, 180, 195, 0.48)',
+        backBody: 'rgba(45, 145, 175, 0.52)'
+      },
+      purple: {
+        frontPrimary: '#7c3aed',
+        frontSecondary: '#6d28d9',
+        frontGlow: '#a855f7',
+        backInnerRim: 'rgba(160, 140, 195, 0.48)',
+        backBody: 'rgba(115, 75, 190, 0.52)'
+      },
+      emerald: {
+        frontPrimary: '#10b981',
+        frontSecondary: '#059669',
+        frontGlow: '#34d399',
+        backInnerRim: 'rgba(130, 180, 160, 0.48)',
+        backBody: 'rgba(45, 145, 115, 0.52)'
+      }
+    };
+    let currentTheme = COLOR_THEMES.royal;
+
+    // Uniform surface sampling for Hemisphere + Cylinder Wall (Zero pole clustering)
+    let dots = [];
+    function generateIllusionDots(count) {
+      dots = [];
+      for (let i = 0; i < count; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const isDome = Math.random() < 0.42;
+        let x_local, r, u_axial;
+
+        if (isDome) {
+          // Uniform surface area sampling on hemisphere: u = cos(phi) uniform in [0, 1]
+          const u = Math.random();
+          x_local = -L / 2 - R_DOME * u;
+          r = R * Math.sqrt(Math.max(0, 1 - u * u));
+          u_axial = 0; // Dome region
+        } else {
+          // Uniform cylinder wall from -L/2 (dome junction) to +L/2 (open bottom-right mouth)
+          const u = Math.random();
+          x_local = -L / 2 + u * L;
+          r = R;
+          u_axial = u; // 0 at dome junction -> 1 at open mouth rim
+        }
+
+        // Keep dot sizes very uniform (3.9px to 4.5px) for pure bistable orthographic illusion
+        const baseRadius = 3.9 + Math.random() * 0.65;
+        dots.push({ x_local, theta, r, isDome, u_axial, baseRadius });
+      }
+    }
+
+    generateIllusionDots(numDots);
+
+    // Helper for rounded rectangles on Canvas
+    function drawRoundedRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    // Main Render Loop (1080x1920 Full HD Vertical, Delta-Time Driven)
+    let lastFrameTime = performance.now();
+
+    function renderIllusionFrame(now) {
+      const dt = Math.min(Math.max((now - lastFrameTime) / 1000, 0.001), 0.1);
+      lastFrameTime = now;
+      elapsedCycleTime += dt;
+
+      // 1. Pure Black Background (#000000)
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 2. Top Hook Text ("Reverse it with your mind")
+      if (topHookText.trim() !== '') {
+        let alpha = 1.0;
+        if (topTextMode === 'fade4s') {
+          // Matches @eyedrills sample: appears around 0.7s, stays until 4.3s, then fades out
+          const t = elapsedCycleTime % 15.0;
+          if (t < 0.5) alpha = 0;
+          else if (t < 0.85) alpha = (t - 0.5) / 0.35;
+          else if (t < 4.2) alpha = 1.0;
+          else if (t < 4.6) alpha = 1.0 - (t - 4.2) / 0.4;
+          else alpha = 0;
+        }
+
+        if (alpha > 0.01) {
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = '#ffffff';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.font = '700 44px Inter, Arial, sans-serif';
+          ctx.fillText(topHookText, canvas.width / 2, 435);
+          ctx.restore();
+        }
+      }
+
+      // 3. Project & Render 3D Thimble/Cup Cylinder Dots
+      const centerX = canvas.width / 2 + 6;
+      const centerY = canvas.height / 2 + 10;
+
+      const cosPitch = Math.cos(PITCH_ANGLE);
+      const sinPitch = Math.sin(PITCH_ANGLE);
+      const cosTilt = Math.cos(TILT_ANGLE);
+      const sinTilt = Math.sin(TILT_ANGLE);
+
+      const projectedDots = new Array(dots.length);
+
+      for (let i = 0; i < dots.length; i++) {
+        const d = dots[i];
+        const angle = d.theta + rotationAngle;
+
+        // Rotate around longitudinal X-axis of the cylinder
+        const x0 = d.x_local;
+        const y0 = d.r * Math.cos(angle);
+        const z0 = d.r * Math.sin(angle);
+
+        // Pitch rotation around Y-axis so the open right circular mouth (+L/2) is tilted toward viewer,
+        // revealing the inner back rim of grey-blue dots on the right while keeping the top-left dome closed
+        const x1 = x0 * cosPitch - z0 * sinPitch;
+        const y1 = y0;
+        const z1 = x0 * sinPitch + z0 * cosPitch;
+
+        // 2D screen tilt (+27 deg downward-right): top-left (10 o'clock) dome to bottom-right (4 o'clock) mouth
+        const screenX = x1 * cosTilt - y1 * sinTilt;
+        const screenY = x1 * sinTilt + y1 * cosTilt;
+
+        projectedDots[i] = {
+          sx: centerX + screenX,
+          sy: centerY + screenY,
+          zDepth: z1,
+          zLocal: z0,
+          isDome: d.isDome,
+          u_axial: d.u_axial,
+          radius: d.baseRadius
+        };
+      }
+
+      // Sort back-to-front by depth
+      projectedDots.sort((a, b) => a.zDepth - b.zDepth);
+
+      // Draw all dots with pure orthographic projection & sample-accurate shading
+      for (let i = 0; i < projectedDots.length; i++) {
+        const p = projectedDots[i];
+        ctx.beginPath();
+
+        if (p.zLocal >= 0) {
+          // Front surface (Dome & Main Cylinder Body): Rich Royal/Cobalt Blue
+          ctx.arc(p.sx, p.sy, p.radius * 1.05, 0, Math.PI * 2);
+          ctx.fillStyle = (p.u_axial > 0.72) ? currentTheme.frontSecondary : currentTheme.frontPrimary;
+        } else {
+          // Back / Inner surface:
+          // Near the open right mouth (u_axial > 0.25), dots show as the muted slate/grey-blue inner rim
+          ctx.arc(p.sx, p.sy, p.radius * 0.92, 0, Math.PI * 2);
+          if (!p.isDome && p.u_axial > 0.22) {
+            ctx.fillStyle = currentTheme.backInnerRim;
+          } else {
+            ctx.fillStyle = currentTheme.backBody;
+          }
+        }
+        ctx.fill();
+      }
+
+      // 4. Crisp Stationary White Fixation Dot (Upper-left-center of cylinder, exact sample coordinates)
+      const fixX = centerX - 68;
+      const fixY = centerY - 22;
+
+      ctx.beginPath();
+      ctx.arc(fixX, fixY, 10, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+
+      // 5. Bottom Engaging Text & "Follow Mind Maze" Branding
+      if (badgeStyle !== 'none') {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        if (subCaptionText.trim() !== '') {
+          ctx.fillStyle = 'rgba(226, 232, 240, 0.92)';
+          ctx.font = '600 33px Inter, Arial, sans-serif';
+          ctx.fillText(subCaptionText, canvas.width / 2, 1465);
+        }
+
+        if (ctaMainText.trim() !== '') {
+          ctx.font = '800 42px Inter, Arial, sans-serif';
+          const textMetrics = ctx.measureText(ctaMainText);
+          const boxWidth = Math.max(textMetrics.width + 84, 460);
+          const boxHeight = 84;
+          const boxX = (canvas.width - boxWidth) / 2;
+          const boxY = 1520;
+
+          if (badgeStyle === 'pill') {
+            ctx.save();
+            ctx.shadowColor = currentTheme.frontGlow;
+            ctx.shadowBlur = 22;
+            const grad = ctx.createLinearGradient(boxX, boxY, boxX + boxWidth, boxY + boxHeight);
+            grad.addColorStop(0, 'rgba(30, 58, 138, 0.78)');
+            grad.addColorStop(0.5, 'rgba(37, 99, 235, 0.88)');
+            grad.addColorStop(1, 'rgba(30, 58, 138, 0.78)');
+            ctx.fillStyle = grad;
+            drawRoundedRect(ctx, boxX, boxY, boxWidth, boxHeight, 42);
+            ctx.fill();
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(147, 197, 253, 0.55)';
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(ctaMainText, canvas.width / 2, boxY + boxHeight / 2 + 2);
+          } else if (badgeStyle === 'neon') {
+            ctx.save();
+            ctx.shadowColor = currentTheme.frontGlow;
+            ctx.shadowBlur = 18;
+            ctx.fillStyle = 'rgba(10, 15, 30, 0.9)';
+            drawRoundedRect(ctx, boxX, boxY, boxWidth, boxHeight, 16);
+            ctx.fill();
+
+            ctx.lineWidth = 2.5;
+            ctx.strokeStyle = currentTheme.frontGlow;
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(ctaMainText, canvas.width / 2, boxY + boxHeight / 2 + 2);
+          } else {
+            // Clean Minimal Text matching sample aesthetic
+            ctx.fillStyle = currentTheme.frontGlow;
+            ctx.fillText(ctaMainText, canvas.width / 2, boxY + boxHeight / 2);
+          }
+        }
+        ctx.restore();
+      }
+
+      // Advance rotation angle using real delta-time (1.55 rad/s default = calm hypnotic speed)
+      rotationAngle += dt * angularSpeedRadPerSec * spinDirection;
+
+      requestAnimationFrame(renderIllusionFrame);
+    }
+
+    requestAnimationFrame(renderIllusionFrame);
+
+    // =========================================================================
+    // 2. WEB AUDIO SYNTHESIZER (HYPNOTIC BRAIN-TEST BASS BEAT)
+    // =========================================================================
+    let audioCtx = null;
+    let audioDestStream = null;
+    let isAudioPlaying = false;
+    let beatIntervalId = null;
+    let beatStep = 0;
+
+    function initAudioEngine() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+        audioDestStream = audioCtx.createMediaStreamDestination();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playHypnoticBeatStep() {
+      if (!audioCtx || !isAudioPlaying) return;
+      const now = audioCtx.currentTime;
+
+      // Deep hypnotic bass synth pattern similar to the reference TikTok audio
+      const bassNotes = [55, 55, 65.41, 55, 49, 49, 58.27, 49]; // A1, C2, G1, Bb1
+      const freq = bassNotes[beatStep % bassNotes.length];
+
+      // Bass Oscillator
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now);
+
+      // Lowpass filter for warm deep bass
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(240, now);
+      filter.frequency.exponentialRampToValueAtTime(70, now + 0.35);
+
+      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+      gain.connect(audioDestStream);
+
+      osc.start(now);
+      osc.stop(now + 0.4);
+
+      // Crisp clap/snare on every 2nd step
+      if (beatStep % 2 === 1) {
+        const bufferSize = audioCtx.sampleRate * 0.09;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+
+        const whiteNoise = audioCtx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+
+        const bandpass = audioCtx.createBiquadFilter();
+        bandpass.type = 'bandpass';
+        bandpass.frequency.value = 1200;
+
+        const clapGain = audioCtx.createGain();
+        clapGain.gain.setValueAtTime(0.12, now);
+        clapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+        whiteNoise.connect(bandpass);
+        bandpass.connect(clapGain);
+        clapGain.connect(audioCtx.destination);
+        clapGain.connect(audioDestStream);
+
+        whiteNoise.start(now);
+      }
+
+      beatStep++;
+    }
+
+    function toggleAudioBeat() {
+      initAudioEngine();
+      isAudioPlaying = !isAudioPlaying;
+
+      const audioIcon = document.getElementById('audioIcon');
+      const audioStatusText = document.getElementById('audioStatusText');
+      const audioToggleBtn = document.getElementById('audioToggleBtn');
+
+      if (isAudioPlaying) {
+        audioIcon.textContent = '🔊';
+        audioStatusText.textContent = 'Beat Sound: ON';
+        audioToggleBtn.classList.replace('bg-slate-900', 'bg-blue-950/80');
+        audioToggleBtn.classList.replace('border-slate-700/80', 'border-blue-500/50');
+        playHypnoticBeatStep();
+        beatIntervalId = setInterval(playHypnoticBeatStep, 430);
+      } else {
+        audioIcon.textContent = '🔇';
+        audioStatusText.textContent = 'Beat Sound: OFF';
+        audioToggleBtn.classList.replace('bg-blue-950/80', 'bg-slate-900');
+        audioToggleBtn.classList.replace('border-blue-500/50', 'border-slate-700/80');
+        if (beatIntervalId) clearInterval(beatIntervalId);
+      }
+    }
+
+    document.getElementById('audioToggleBtn').addEventListener('click', toggleAudioBeat);
+
+    // =========================================================================
+    // 3. VIDEO RECORDING & DIRECT MP4 / WEBM DOWNLOAD ENGINE
+    // =========================================================================
+    let selectedDurationSec = 10;
+    let isRecording = false;
+
+    // Duration selector buttons
+    const durationBtns = document.querySelectorAll('.duration-btn');
+    durationBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (isRecording) return;
+        selectedDurationSec = parseInt(btn.getAttribute('data-duration'), 10);
+
+        durationBtns.forEach(b => {
+          b.className = 'duration-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition';
+        });
+        btn.className = 'duration-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white shadow';
+
+        document.getElementById('mainExportBtnText').textContent = `Record & Download Video (${selectedDurationSec}s)`;
+      });
+    });
+
+    // Detect best supported video format (Prioritize MP4 if supported by browser)
+    function getBestSupportedMimeType() {
+      const candidates = [
+        { mime: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', ext: 'mp4' },
+        { mime: 'video/mp4;codecs=avc1', ext: 'mp4' },
+        { mime: 'video/mp4', ext: 'mp4' },
+        { mime: 'video/webm;codecs=vp9,opus', ext: 'webm' },
+        { mime: 'video/webm;codecs=vp8,opus', ext: 'webm' },
+        { mime: 'video/webm', ext: 'webm' }
+      ];
+      for (const item of candidates) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported(item.mime)) {
+          return item;
+        }
+      }
+      return { mime: '', ext: 'webm' };
+    }
+
+    function startVideoExport() {
+      if (isRecording) return;
+      isRecording = true;
+
+      const mainExportBtn = document.getElementById('mainExportBtn');
+      const topExportBtn = document.getElementById('topExportBtn');
+      const mainExportBtnText = document.getElementById('mainExportBtnText');
+      const exportProgressBox = document.getElementById('exportProgressBox');
+      const exportProgressBar = document.getElementById('exportProgressBar');
+      const exportProgressPercent = document.getElementById('exportProgressPercent');
+      const exportProgressLabel = document.getElementById('exportProgressLabel');
+      const downloadReadyBanner = document.getElementById('downloadReadyBanner');
+      const recordingBadge = document.getElementById('recordingBadge');
+      const recordingBadgeText = document.getElementById('recordingBadgeText');
+
+      downloadReadyBanner.classList.add('hidden');
+      exportProgressBox.classList.remove('hidden');
+      recordingBadge.classList.remove('hidden');
+
+      mainExportBtn.disabled = true;
+      topExportBtn.disabled = true;
+      mainExportBtn.classList.add('opacity-75', 'cursor-not-allowed');
+
+      // Capture 60 FPS stream from canvas
+      const canvasStream = canvas.captureStream(60);
+
+      // If user turned on the audio beat, merge the audio track into the video!
+      if (isAudioPlaying && audioDestStream) {
+        const audioTracks = audioDestStream.stream.getAudioTracks();
+        if (audioTracks.length > 0) {
+          canvasStream.addTrack(audioTracks[0]);
+        }
+      }
+
+      const format = getBestSupportedMimeType();
+      const recorderOptions = format.mime
+        ? { mimeType: format.mime, videoBitsPerSecond: 8000000 }
+        : { videoBitsPerSecond: 8000000 };
+
+      const recordedChunks = [];
+      let recorder;
+      try {
+        recorder = new MediaRecorder(canvasStream, recorderOptions);
+      } catch (err) {
+        recorder = new MediaRecorder(canvasStream);
+      }
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blobType = format.mime || 'video/webm';
+        const videoBlob = new Blob(recordedChunks, { type: blobType });
+        const videoUrl = URL.createObjectURL(videoBlob);
+        const fileName = `mind_maze_illusion_${selectedDurationSec}s.${format.ext}`;
+
+        // Set manual link & trigger automatic download
+        const manualDownloadLink = document.getElementById('manualDownloadLink');
+        manualDownloadLink.href = videoUrl;
+        manualDownloadLink.download = fileName;
+
+        const tempLink = document.createElement('a');
+        tempLink.href = videoUrl;
+        tempLink.download = fileName;
+        document.body.appendChild(tempLink);
+        tempLink.click();
+        document.body.removeChild(tempLink);
+
+        // Reset UI
+        isRecording = false;
+        mainExportBtn.disabled = false;
+        topExportBtn.disabled = false;
+        mainExportBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+        mainExportBtnText.textContent = `Record & Download Video (${selectedDurationSec}s)`;
+        recordingBadge.classList.add('hidden');
+        exportProgressBox.classList.add('hidden');
+        downloadReadyBanner.classList.remove('hidden');
+        document.getElementById('downloadFormatInfo').textContent =
+          `Saved as ${fileName.toUpperCase()} (1080×1920 Full HD • 60 FPS)`;
+      };
+
+      recorder.start(100);
+      elapsedCycleTime = 0; // Reset text fade timer so recorded video starts cleanly at 0.0s
+
+      // Update progress bar smoothly
+      const startTime = performance.now();
+      const totalMs = selectedDurationSec * 1000;
+
+      const progressTimer = setInterval(() => {
+        const elapsed = performance.now() - startTime;
+        const pct = Math.min(100, Math.round((elapsed / totalMs) * 100));
+        const remainingSec = Math.max(0, Math.ceil((totalMs - elapsed) / 1000));
+
+        exportProgressBar.style.width = `${pct}%`;
+        exportProgressPercent.textContent = `${pct}%`;
+        exportProgressLabel.textContent = `Recording live 3D illusion (${remainingSec}s remaining)...`;
+        mainExportBtnText.textContent = `Recording Video... ${pct}%`;
+        recordingBadgeText.textContent = `REC • ${remainingSec}s`;
+
+        if (elapsed >= totalMs) {
+          clearInterval(progressTimer);
+          if (recorder.state === 'recording') {
+            recorder.stop();
+          }
+        }
+      }, 80);
+    }
+
+    document.getElementById('mainExportBtn').addEventListener('click', startVideoExport);
+    document.getElementById('topExportBtn').addEventListener('click', startVideoExport);
+
+    // High-res PNG Snapshot button
+    document.getElementById('instantSnapshotBtn').addEventListener('click', () => {
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'mind_maze_thumbnail_1080x1920.png';
+      a.click();
+    });
+
+    // =========================================================================
+    // 4. INTERACTIVE UI BINDINGS & PRESETS
+    // =========================================================================
+    const topTextInput = document.getElementById('topTextInput');
+    const topTextModeSelect = document.getElementById('topTextModeSelect');
+    const subTextInput = document.getElementById('subTextInput');
+    const ctaTextInput = document.getElementById('ctaTextInput');
+    const badgeStyleSelect = document.getElementById('badgeStyleSelect');
+
+    topTextInput.addEventListener('input', (e) => { topHookText = e.target.value; });
+    topTextModeSelect.addEventListener('change', (e) => {
+      topTextMode = e.target.value;
+      elapsedCycleTime = 0;
+    });
+    subTextInput.addEventListener('input', (e) => { subCaptionText = e.target.value; });
+    ctaTextInput.addEventListener('input', (e) => { ctaMainText = e.target.value; });
+    badgeStyleSelect.addEventListener('change', (e) => { badgeStyle = e.target.value; });
+
+    // Preset 1: Original + Mind Maze
+    document.getElementById('presetEnglish').addEventListener('click', () => {
+      topHookText = "Reverse it with your mind";
+      subCaptionText = "Focus on the white dot to flip the spin 👁️";
+      ctaMainText = "Follow Mind Maze 🧠✨";
+      topTextInput.value = topHookText;
+      subTextInput.value = subCaptionText;
+      ctaTextInput.value = ctaMainText;
+    });
+
+    // Preset 2: Roman Urdu / Hindi Hook
+    document.getElementById('presetUrdu').addEventListener('click', () => {
+      topHookText = "Reverse it with your mind";
+      subCaptionText = "White dot par 5 sec focus karein — direction badal jayegi! 👁️";
+      ctaMainText = "Follow Mind Maze 🧠🔥";
+      topTextInput.value = topHookText;
+      subTextInput.value = subCaptionText;
+      ctaTextInput.value = ctaMainText;
+    });
+
+    // Preset 3: 1% Brain Challenge
+    document.getElementById('presetChallenge').addEventListener('click', () => {
+      topHookText = "Reverse it with your mind";
+      subCaptionText = "Only 1% can flip the rotation with their mind 👇";
+      ctaMainText = "Follow Mind Maze 🧠⚡";
+      topTextInput.value = topHookText;
+      subTextInput.value = subCaptionText;
+      ctaTextInput.value = ctaMainText;
+    });
+
+    // Physics Controls
+    document.getElementById('flipDirectionBtn').addEventListener('click', () => {
+      spinDirection *= -1;
+    });
+    canvas.addEventListener('click', () => {
+      spinDirection *= -1;
+    });
+
+    const speedSlider = document.getElementById('speedSlider');
+    const speedValueLabel = document.getElementById('speedValueLabel');
+    speedSlider.addEventListener('input', (e) => {
+      angularSpeedRadPerSec = parseFloat(e.target.value);
+      speedValueLabel.textContent = `${angularSpeedRadPerSec.toFixed(2)} rad/s`;
+    });
+
+    const dotsSlider = document.getElementById('dotsSlider');
+    const dotsValueLabel = document.getElementById('dotsValueLabel');
+    dotsSlider.addEventListener('input', (e) => {
+      numDots = parseInt(e.target.value, 10);
+      dotsValueLabel.textContent = numDots;
+      generateIllusionDots(numDots);
+    });
+
+    document.getElementById('colorThemeSelect').addEventListener('change', (e) => {
+      currentTheme = COLOR_THEMES[e.target.value] || COLOR_THEMES.royal;
+    });
+  </script>
+</body>
+</html>
